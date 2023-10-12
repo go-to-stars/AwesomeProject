@@ -11,10 +11,15 @@ import {
   ScrollView,
   Dimensions,
   KeyboardAvoidingView,
+  TouchableWithoutFeedback,
   Platform,
   Animated,
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/AntDesign";
+// import { launchImageLibrary } from "react-native-image-picker";
+// import CreateUserPhoto from "../components/СreateUserPhoto";
+import * as ImagePicker from "expo-image-picker";
 
 export default function RegistrationScreen() {
   const [shift, setShift] = useState(false);
@@ -28,14 +33,38 @@ export default function RegistrationScreen() {
   const [isEmailFocused, setEmailFocused] = useState(false);
   const [isPasswordFocused, setPasswordFocused] = useState(false);
 
-  const handleRegistration = () => {
-    console.log("handleRegistration");
+  // const onRegistration = () => {
+  // setTextLogin("");
+  // setTextEmail("");
+  // setTextPassword("");
+  //   Alert.alert("Credentials", `${textLogin} + ${textEmail} + ${textPassword}`);
+  // };
+
+  const onRegistration = () => {
+    setTextLogin("");
+    setTextEmail("");
+    setTextPassword("");
+    console.log("Credentials", `${textLogin} + ${textEmail} + ${textPassword}`);
   };
-  const addPhotoUser = () => {
-    console.log("addPhotoUser");
+
+  const addPhotoUser = async () => {
+    const options = {
+      mediaType: "photo",
+    };
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 4],
+    });
+
+    if (result.assets && result.assets.length > 0) {
+      setImage(result.assets[0].uri);
+    }
   };
+
   const deletePhotoUser = () => {
-    console.log("deletePhotoUser");
+    setImage("");
   };
 
   const handleFocus = (input) => {
@@ -95,31 +124,32 @@ export default function RegistrationScreen() {
   }, [shift]);
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <View style={styles.container}>
-        <StatusBar style="auto" />
-        <ImageBackground
-          source={require("../img/photo_bg.png")}
-          style={styles.bg}
-          resizeMode="cover"
-        />
-        <ScrollView
-          contentContainerStyle={styles.scrollViewContainer}
-          bounces={false}
-        >
-          <Animated.View
-            style={[styles.formWrapper, { paddingBottom: position }]}
-          >           
-            <View style={styles.photoContainer}>
-              {image ? (
-                <View style={styles.withPhotoUser}>
-                  <ImageBackground
-                    source={{ uri: image }}
-                    style={styles.photoUser}
-                  >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={styles.container}>
+          <StatusBar style="auto" />
+          <ImageBackground
+            source={require("../img/photo_bg.png")}
+            style={styles.bg}
+            resizeMode="cover"
+          />
+          <ScrollView
+            contentContainerStyle={styles.scrollViewContainer}
+            bounces={false}
+          >
+            <Animated.View
+              style={[styles.formWrapper, { paddingBottom: position }]}
+            >
+              <View style={styles.photoContainer}>
+                {image ? (
+                  <View style={styles.withPhotoUser}>
+                    <ImageBackground
+                      source={{ uri: image }}
+                      style={styles.photoUser}
+                    ></ImageBackground>
                     <TouchableOpacity
                       onPress={() => {
                         deletePhotoUser();
@@ -131,95 +161,92 @@ export default function RegistrationScreen() {
                         style={styles.iconDelPhotoUser}
                       />
                     </TouchableOpacity>
-                  </ImageBackground>
-                </View>
-              ) : (
-                <View style={styles.withoutPhotoUser}>
+                  </View>
+                ) : (
+                  <View style={styles.withoutPhotoUser}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        addPhotoUser();
+                      }}
+                    >
+                      <Icon
+                        name="pluscircleo"
+                        size={25}
+                        style={styles.iconAddPhotoUser}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.title}>Реєстрація</Text>
+              <View style={styles.inputsContainer}>
+                <TextInput
+                  placeholder="Логін"
+                  style={isLoginFocused ? styles.inputFocused : styles.input}
+                  autoComplete="username"
+                  value={textLogin}
+                  onChangeText={onChangeTextLogin}
+                  onFocus={() => handleFocus("username")}
+                  onBlur={() => handleBlur("username")}
+                />
+                <TextInput
+                  placeholder="Адреса електронної пошти"
+                  style={isEmailFocused ? styles.inputFocused : styles.input}
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={textEmail}
+                  onChangeText={onChangeTextEmail}
+                  onFocus={() => handleFocus("email")}
+                  onBlur={() => handleBlur("email")}
+                />
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    placeholder="Пароль"
+                    style={
+                      isPasswordFocused
+                        ? styles.inputPasswordFocused
+                        : styles.inputPassword
+                    }
+                    autoComplete="password"
+                    autoCapitalize="none"
+                    value={textPassword}
+                    secureTextEntry={!isVisiblePassword}
+                    onChangeText={onChangeTextPassword}
+                    onFocus={() => handleFocus("password")}
+                    onBlur={() => handleBlur("password")}
+                  />
                   <TouchableOpacity
-                    onPress={() => {
-                      addPhotoUser();
-                    }}
+                    onPress={() => setVisiblePassword(!isVisiblePassword)}
                   >
-                    <Icon
-                      name="pluscircleo"
-                      size={25}
-                      style={styles.iconAddPhotoUser}
-                    />
+                    <Text style={styles.buttonViewPassword}>
+                      {isVisiblePassword ? "Приховати" : "Показати"}
+                    </Text>
                   </TouchableOpacity>
                 </View>
-              )}
-            </View>
-
-            <Text style={styles.title}>Реєстрація</Text>
-            <View style={styles.inputsContainer}>
-              <TextInput
-                placeholder="Логін"
-                style={
-                  isLoginFocused ? styles.inputLoginFocused : styles.inputLogin
-                }
-                autoComplete="username"
-                value={textLogin}
-                onChangeText={onChangeTextLogin}
-                onFocus={() => handleFocus("username")}
-                onBlur={() => handleBlur("username")}
-              />
-              <TextInput
-                placeholder="Адреса електронної пошти"
-                style={
-                  isEmailFocused ? styles.inputEmailFocused : styles.inputEmail
-                }
-                autoComplete="email"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={textEmail}
-                onChangeText={onChangeTextEmail}
-                onFocus={() => handleFocus("email")}
-                onBlur={() => handleBlur("email")}
-              />
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  placeholder="Пароль"
-                  style={
-                    isPasswordFocused
-                      ? styles.inputPasswordFocused
-                      : styles.inputPassword
-                  }
-                  autoComplete="password"
-                  autoCapitalize="none"
-                  value={textPassword}
-                  onChangeText={onChangeTextPassword}
-                  onFocus={() => handleFocus("password")}
-                  onBlur={() => handleBlur("password")}
-                />
+              </View>
+              <View style={styles.noKeyboardField}>
                 <TouchableOpacity
-                  onPress={() => setVisiblePassword(!isVisiblePassword)}
+                  style={styles.buttonRegistration}
+                  onPress={() => {
+                    onRegistration();
+                  }}
                 >
-                  <Text style={styles.buttonViewPassword}>
-                    {isVisiblePassword ? "Приховати" : "Показати"}
-                  </Text>
+                  <Text style={styles.buttonText}>Зареєструватися</Text>
                 </TouchableOpacity>
+                <View style={styles.textLinkBox}>
+                  <Text style={styles.textLink}>Вже є акаунт?</Text>
+                  <TouchableOpacity onPress={() => {}}>
+                    <Text style={styles.textLinkUnderline}>Увійти</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-            <View style={styles.noKeyboardField}>
-              <TouchableOpacity
-                style={styles.buttonRegistration}
-                onPress={() => {
-                  handleRegistration();
-                }}
-              >
-                <Text style={styles.buttonText}>Зареєструватися</Text>
-              </TouchableOpacity>
-              <View style={styles.textLinkBox}>
-                <Text style={styles.textLink}>Вже є акаунт?</Text>
-                <TouchableOpacity onPress={() => {}}>
-                  <Text style={styles.textLinkUnderline}>Увійти</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Animated.View>
-        </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+            </Animated.View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -228,7 +255,7 @@ const widthInput = screenSize.width - 32;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,    
+    flex: 1,
     width: screenSize.width,
   },
   bg: {
@@ -236,7 +263,7 @@ const styles = StyleSheet.create({
     left: 0,
     position: "absolute",
     height: screenSize.height,
-    width: screenSize.width,   
+    width: screenSize.width,
     alignItems: "center",
   },
   scrollViewContainer: {
@@ -260,21 +287,25 @@ const styles = StyleSheet.create({
     height: 120,
     top: -60,
     borderRadius: 20,
+
     zIndex: 2,
   },
   withPhotoUser: {
     width: 120,
     height: 120,
+    borderRadius: 20,
+
     backgroundColor: "#BDBDBD",
   },
   photoUser: {
     width: 120,
     height: 120,
+    borderRadius: 20,
+    overflow: "hidden",
   },
   iconDelPhotoUser: {
     left: 107,
-    top: 81,
-    strokeWidth: "1",
+    top: -39,
     color: "#BDBDBD",
   },
   withoutPhotoUser: {
@@ -287,7 +318,6 @@ const styles = StyleSheet.create({
     position: "relative",
     left: 107,
     top: 81,
-    strokeWidth: "1",
     color: "#FF6C00",
   },
   title: {
@@ -300,6 +330,60 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     textAlign: "center",
     color: "#212121",
+  },
+  input: {
+    width: widthInput,
+    height: 50,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 15,
+    marginBottom: 16,
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    fontStyle: "normal",
+    fontWeight: "400",
+    backgroundColor: "#F6F6F6",
+    color: "#212121",
+    // placeholderTextColor: "#BDBDBD",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+    borderRadius: 5,
+  },
+  inputFocused: {
+    width: widthInput,
+    height: 50,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 15,
+    marginBottom: 16,
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    fontStyle: "normal",
+    fontWeight: "400",
+    backgroundColor: "#FFF",
+    color: "#212121",
+    // placeholderTextColor: "#BDBDBD",
+    borderWidth: 1,
+    borderColor: "#FF6C00",
+    borderRadius: 5,
+  },
+  inputEmail: {
+    width: widthInput,
+    height: 50,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 15,
+    marginBottom: 16,
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    fontStyle: "normal",
+    fontWeight: "400",
+    backgroundColor: "#F6F6F6",
+    color: "#212121",
+    // placeholderTextColor: "#BDBDBD",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+    borderRadius: 5,
   },
   inputLogin: {
     width: widthInput,
@@ -403,6 +487,7 @@ const styles = StyleSheet.create({
   inputPasswordFocused: {
     width: widthInput,
     height: "100%",
+    // height: 50,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 15,
@@ -457,7 +542,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: 5,   
+    gap: 5,
     marginBottom: 12,
   },
   textLink: {

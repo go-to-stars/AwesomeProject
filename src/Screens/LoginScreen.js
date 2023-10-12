@@ -24,8 +24,13 @@ export default function LoginScreen() {
   const [isEmailFocused, setEmailFocused] = useState(false);
   const [isPasswordFocused, setPasswordFocused] = useState(false);
 
-  const handleRegistration = () => {
-    console.log("handleRegistration");
+  // const onRegistration = () => {
+  //   Alert.alert("Credentials", `${textEmail} + ${textPassword}`);
+  // };
+  const onRegistration = () => {    
+    setTextEmail("");
+    setTextPassword("");
+    console.log("Credentials", `${textEmail} + ${textPassword}`);
   };
 
   const handleFocus = (input) => {
@@ -118,6 +123,7 @@ export default function LoginScreen() {
                   autoComplete="password"
                   autoCapitalize="none"
                   value={textPassword}
+                  secureTextEntry={!isVisiblePassword}
                   onChangeText={onChangeTextPassword}
                   onFocus={() => handleFocus("password")}
                   onBlur={() => handleBlur("password")}
@@ -135,7 +141,7 @@ export default function LoginScreen() {
               <TouchableOpacity
                 style={styles.buttonRegistration}
                 onPress={() => {
-                  handleRegistration();
+                  onRegistration();
                 }}
               >
                 <Text style={styles.buttonText}>Увійти</Text>
