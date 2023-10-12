@@ -23,18 +23,11 @@ export default function App() {
   }
 
   return (
-    // <KeyboardAvoidingView
-    //   // behavior={Platform.OS === "ios" ? "padding" : "height"}
-    //   style={styles.containerKAV}
-    // >
-    //   <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     <View style={styles.container}>
-      {/* <RegistrationScreen /> */}
-      <LoginScreen />
+      <RegistrationScreen />
+      {/* <LoginScreen /> */}
       {/* <StatusBar style="auto" /> */}
     </View>
-    //   {/* </TouchableWithoutFeedback>
-    // </KeyboardAvoidingView> */}
   );
 }
 
