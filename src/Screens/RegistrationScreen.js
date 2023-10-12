@@ -17,8 +17,6 @@ import {
   Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/AntDesign";
-// import { launchImageLibrary } from "react-native-image-picker";
-// import CreateUserPhoto from "../components/СreateUserPhoto";
 import * as ImagePicker from "expo-image-picker";
 
 export default function RegistrationScreen() {
