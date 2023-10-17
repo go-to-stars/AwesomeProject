@@ -1,16 +1,8 @@
-// import { StatusBar } from "expo-status-bar";
-import {
-  StyleSheet,
-  KeyboardAvoidingView,
-  View,
-  StatusBar,
-  TouchableWithoutFeedback,
-  Keyboard,
-} from "react-native";
-import RegistrationScreen from "./src/Screens/RegistrationScreen";
-import LoginScreen from "./src/Screens/LoginScreen";
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import "react-native-gesture-handler";
 import { useFonts } from "expo-font";
-// import { Linking } from "react-native";
+import AppNavigator from "./src/routes/AppNavigator";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -23,22 +15,8 @@ export default function App() {
   }
 
   return (
-    <View style={styles.container}>
-      <RegistrationScreen />
-      {/* <LoginScreen /> */}
-      {/* <StatusBar style="auto" /> */}
-    </View>
+    <NavigationContainer>
+      <AppNavigator />
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  containerKAV: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

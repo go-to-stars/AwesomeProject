@@ -4,17 +4,17 @@ import {
   StyleSheet,
   Text,
   View,
-  ImageBackground,
+  Image,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  ImageBackground,
   Keyboard,
   ScrollView,
   Dimensions,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Platform,
   Animated,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 export default function LoginScreen() {
   const [shift, setShift] = useState(false);
@@ -24,14 +24,13 @@ export default function LoginScreen() {
   const [isVisiblePassword, setVisiblePassword] = useState(false);
   const [isEmailFocused, setEmailFocused] = useState(false);
   const [isPasswordFocused, setPasswordFocused] = useState(false);
+  const navigation = useNavigation();
 
-  // const onRegistration = () => {
-  //   Alert.alert("Credentials", `${textEmail} + ${textPassword}`);
-  // };
-  const onRegistration = () => {
+  const onLogin = () => {
     setTextEmail("");
     setTextPassword("");
     console.log("Credentials", `${textEmail} + ${textPassword}`);
+    navigation.navigate("BottomNavigator");
   };
 
   const handleFocus = (input) => {
@@ -81,88 +80,79 @@ export default function LoginScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <View style={styles.container}>
-          <StatusBar style="auto" />
-          <ImageBackground
-            source={require("../img/photo_bg.png")}
-            style={styles.bg}
-            resizeMode="cover"
-          />
-          <ScrollView
-            contentContainerStyle={styles.scrollViewContainer}
-            bounces={false}
+      <View style={styles.container}>
+        <StatusBar style="auto" />
+        <ImageBackground
+          source={require("../img/photo_bg.png")}
+          style={styles.bg}
+          resizeMode="cover"
+        />
+        <ScrollView
+          contentContainerStyle={styles.scrollViewContainer}
+          bounces={false}
+        >
+          <Animated.View
+            style={[styles.formWrapper, { paddingBottom: position }]}
           >
-            <Animated.View
-              style={[styles.formWrapper, { paddingBottom: position }]}
-            >
-              <Text style={styles.title}>Увійти</Text>
-              <View style={styles.inputsContainer}>
+            <Text style={styles.title}>Увійти</Text>
+            <View style={styles.inputsContainer}>
+              <TextInput
+                placeholder="Адреса електронної пошти"
+                style={isEmailFocused ? styles.inputFocused : styles.input}
+                autoComplete="email"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={textEmail}
+                onChangeText={onChangeTextEmail}
+                onFocus={() => handleFocus("email")}
+                onBlur={() => handleBlur("email")}
+              />
+              <View style={styles.passwordContainer}>
                 <TextInput
-                  placeholder="Адреса електронної пошти"
+                  placeholder="Пароль"
                   style={
-                    isEmailFocused
-                      ? styles.inputEmailFocused
-                      : styles.inputEmail
+                    isPasswordFocused
+                      ? styles.inputPasswordFocused
+                      : styles.inputPassword
                   }
-                  autoComplete="email"
+                  autoComplete="password"
                   autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={textEmail}
-                  onChangeText={onChangeTextEmail}
-                  onFocus={() => handleFocus("email")}
-                  onBlur={() => handleBlur("email")}
+                  value={textPassword}
+                  secureTextEntry={!isVisiblePassword}
+                  onChangeText={onChangeTextPassword}
+                  onFocus={() => handleFocus("password")}
+                  onBlur={() => handleBlur("password")}
                 />
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    placeholder="Пароль"
-                    style={
-                      isPasswordFocused
-                        ? styles.inputPasswordFocused
-                        : styles.inputPassword
-                    }
-                    autoComplete="password"
-                    autoCapitalize="none"
-                    value={textPassword}
-                    secureTextEntry={!isVisiblePassword}
-                    onChangeText={onChangeTextPassword}
-                    onFocus={() => handleFocus("password")}
-                    onBlur={() => handleBlur("password")}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setVisiblePassword(!isVisiblePassword)}
-                  >
-                    <Text style={styles.buttonViewPassword}>
-                      {isVisiblePassword ? "Приховати" : "Показати"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.noKeyboardField}>
                 <TouchableOpacity
-                  style={styles.buttonRegistration}
-                  onPress={() => {
-                    onRegistration();
-                  }}
+                  onPress={() => setVisiblePassword(!isVisiblePassword)}
                 >
-                  <Text style={styles.buttonText}>Увійти</Text>
+                  <Text style={styles.buttonViewPassword}>
+                    {isVisiblePassword ? "Приховати" : "Показати"}
+                  </Text>
                 </TouchableOpacity>
-                <View style={styles.textLinkBox}>
-                  <Text style={styles.textLink}>Немає акаунту?</Text>
-                  <TouchableOpacity onPress={() => {}}>
-                    <Text style={styles.textLinkUnderline}>
-                      Зареєструватися
-                    </Text>
-                  </TouchableOpacity>
-                </View>
               </View>
-            </Animated.View>
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
+            </View>
+            <View style={styles.noKeyboardField}>
+              <TouchableOpacity
+                style={styles.buttonRegistration}
+                onPress={() => {
+                  onLogin();
+                }}
+              >
+                <Text style={styles.buttonText}>Увійти</Text>
+              </TouchableOpacity>
+              <View style={styles.textLinkBox}>
+                <Text style={styles.textLink}>Немає акаунту?</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("Registration")}
+                >
+                  <Text style={styles.textLinkUnderline}>Зареєструватися</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </View>
     </TouchableWithoutFeedback>
   );
 }
@@ -174,6 +164,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: screenSize.width,
+    height: 780,
   },
   bg: {
     top: 0,
@@ -191,7 +182,6 @@ const styles = StyleSheet.create({
     width: screenSize.width,
     marginTop: 279,
     paddingHorizontal: 16,
-    // paddingBottom: 23,
     paddingBottom: 112,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
@@ -210,7 +200,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#212121",
   },
-  inputEmail: {
+  input: {
     width: widthInput,
     height: 50,
     paddingHorizontal: 16,
@@ -223,7 +213,74 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     backgroundColor: "#F6F6F6",
     color: "#212121",
-    // placeholderTextColor: "#BDBDBD",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+    borderRadius: 5,
+  },
+  inputFocused: {
+    width: widthInput,
+    height: 50,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 15,
+    marginBottom: 16,
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    fontStyle: "normal",
+    fontWeight: "400",
+    backgroundColor: "#FFF",
+    color: "#212121",
+    borderWidth: 1,
+    borderColor: "#FF6C00",
+    borderRadius: 5,
+  },
+  inputLogin: {
+    width: widthInput,
+    height: 50,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 15,
+    marginBottom: 16,
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    fontStyle: "normal",
+    fontWeight: "400",
+    backgroundColor: "#F6F6F6",
+    color: "#212121",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+    borderRadius: 5,
+  },
+  inputLoginFocused: {
+    width: widthInput,
+    height: 50,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 15,
+    marginBottom: 16,
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    fontStyle: "normal",
+    fontWeight: "400",
+    backgroundColor: "#FFF",
+    color: "#212121",
+    borderWidth: 1,
+    borderColor: "#FF6C00",
+    borderRadius: 5,
+  },
+  inputEmail: {
+    width: widthInput,
+    height: 50,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 15,
+    marginBottom: 16,
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    fontStyle: "normal",
+    fontWeight: "400",
+    backgroundColor: "#F6F6F6",
+    color: "#212121",    
     borderWidth: 1,
     borderColor: "#E8E8E8",
     borderRadius: 5,
@@ -240,8 +297,7 @@ const styles = StyleSheet.create({
     fontStyle: "normal",
     fontWeight: "400",
     backgroundColor: "#FFF",
-    color: "#212121",
-    // placeholderTextColor: "#BDBDBD",
+    color: "#212121",    
     borderWidth: 1,
     borderColor: "#FF6C00",
     borderRadius: 5,
@@ -266,8 +322,7 @@ const styles = StyleSheet.create({
     fontStyle: "normal",
     fontWeight: "400",
     backgroundColor: "#F6F6F6",
-    color: "#212121",
-    // placeholderTextColor: "#BDBDBD",
+    color: "#212121",    
     flex: 1,
     borderWidth: 1,
     borderColor: "#E8E8E8",
@@ -284,8 +339,7 @@ const styles = StyleSheet.create({
     fontStyle: "normal",
     fontWeight: "400",
     backgroundColor: "#FFF",
-    color: "#212121",
-    // placeholderTextColor: "#BDBDBD",
+    color: "#212121",    
     flex: 1,
     borderWidth: 1,
     borderColor: "#FF6C00",
