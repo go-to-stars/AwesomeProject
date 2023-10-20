@@ -1,54 +1,87 @@
+import React, { useState, useEffect } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  ImageBackground,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  Keyboard,  
+  StyleSheet,  
+  View,  
   Dimensions,
   
-  Animated,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
+import MapView, { PROVIDER_GOOGLE, Marker } from "react-native-maps";
+import * as Location from "expo-location";
+
 export default function MapScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation();  
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("У доступі до місцезнаходження відмовлено");
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const coords = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+      setLocation(coords);
+    })();
+  }, []);
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
-        <ImageBackground
-          source={require("../img/map_Ukraine.png")}
-          style={styles.photo}
-          resizeMode="cover"
-        />
-      </View>
-    </TouchableWithoutFeedback>
+
+    <View style={styles.container}>      
+      <MapView
+        style={styles.mapStyle}
+        provider={PROVIDER_GOOGLE}
+        region={{
+          ...location,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
+        showsUserLocation={true}
+      >
+        {location && (
+          <Marker title="I am here" coordinate={location} description="Hello" />
+        )}
+      </MapView>
+    </View>
   );
 }
-
-const screenSize = Dimensions.get("screen");
-const widthInput = screenSize.width - 32;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFF",
-    paddingHorizontal: 16,
-    paddingTop: 32,
-    paddingBottom: 16,
-  },
-  photoContainer: {
     alignItems: "center",
-    marginBottom: 32,
-    borderRadius: 8,
+    justifyContent: "center",    
+    paddingTop: 58,    
   },
-  photo: {
-    width: widthInput,
-    height: "100%",
-    borderRadius: 8,
-    position: "relative",
+  paragraph: {
+    position: "absolute",
+    top: 3,
+    paddingHorizontal: 10,
+    textAlign: "center",
+    color: "#000",
+    backgroundColor: "rgba(255, 255, 255, 0.50)",
+    borderRadius: 5,
+    zIndex: 5,
+  },
+  errorParagraph: {
+    position: "absolute",
+    top: 3,
+    paddingHorizontal: 10,
+    textAlign: "center",
+    color: "red",
+    backgroundColor: "rgba(255, 255, 255, 0.50)",
+    borderRadius: 5,
+    zIndex: 5,
+  },
+  mapStyle: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
   },
 });

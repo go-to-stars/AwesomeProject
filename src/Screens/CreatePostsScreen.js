@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { StatusBar } from "expo-status-bar";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   Text,
   View,
-  ImageBackground,
+  Image,
   TextInput,
   TouchableOpacity,
   Keyboard,
@@ -13,56 +12,95 @@ import {
   Animated,
   TouchableWithoutFeedback,
 } from "react-native";
+import { Camera } from "expo-camera";
+import * as MediaLibrary from "expo-media-library";
 import { useNavigation } from "@react-navigation/native";
 import IconFontAwesome from "react-native-vector-icons/FontAwesome";
 import IconAntDesign from "react-native-vector-icons/AntDesign";
 import IconFeather from "react-native-vector-icons/Feather";
-import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 
 const initialPublicationState = {
   name: "",
-  location: "",
+  location: { latitude: "", longitude: "" },
+  geolocation: {
+    country: "",
+    region: "",
+    city: "",
+  },
   imageURL: "",
 };
 
 export default function CreatePostsScreen() {
+  const [hasPermission, setHasPermission] = useState(null);
+  const [cameraRef, setCameraRef] = useState(null);
+  const [type, setType] = useState(Camera.Constants.Type.back);
   const [shift, setShift] = useState(false);
   const [position] = useState(new Animated.Value(0));
   const navigation = useNavigation();
-  const [state, setState] = useState(initialPublicationState);  
+  const [state, setState] = useState(initialPublicationState);
   const [isButtonActive, setIsButtonActive] = useState(false);
+  const [errorMsg, setErrorMsg] = useState({});
+  const [isCameraActive, setIsCameraActive] = useState(false);
+
   const updateButtonPublish = () => {
     const isPhoto = !!state.imageURL;
     const isName = !!state.name;
     const isLocation = !!state.location;
-    setIsButtonActive(isPhoto && isName && isLocation);
+    const hasErrors = Object.keys(errorMsg).length > 0;
+    setIsButtonActive(
+      isCameraActive && isPhoto && isName && isLocation && !hasErrors
+    );
   };
 
-  const addPhoto = async () => {
-    const options = {
-      mediaType: "photo",
-    };
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      await MediaLibrary.requestPermissionsAsync();
 
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 4],
-    });
+      setHasPermission(status === "granted");
+    })();
+    setIsCameraActive(true);
+    updateButtonPublish();
+    console.log(state);
+  }, [state, errorMsg, isCameraActive]);
 
-    if (result.assets && result.assets.length > 0) {
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("У доступі до місцезнаходження відмовлено");
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      let geoLocation = await Location.reverseGeocodeAsync(location.coords);
+
       setState((prevState) => ({
         ...prevState,
-        imageURL: result.assets[0].uri,
+        location: {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        geolocation: {
+          country: geoLocation[0].country,
+          region: geoLocation[0].region,
+          city: geoLocation[0].city,
+        },
       }));
+    } catch (error) {
+      console.error("Error getting location:", error);
     }
   };
 
-  const clearForm = () => {
-    setState(initialPublicationState);
-  };
-
-  const createPost = () => {
-    navigation.navigate("Posts");
+  const takePhoto = async () => {
+    if (isCameraActive && cameraRef) {
+      const { uri } = await cameraRef.takePictureAsync();
+      await MediaLibrary.createAssetAsync(uri);
+      setState((prevState) => ({ ...prevState, imageURL: uri }));
+      getCurrentLocation();
+    }
+    setIsCameraActive(false);
   };
 
   useEffect(() => {
@@ -81,15 +119,19 @@ export default function CreatePostsScreen() {
 
   useEffect(() => {
     Animated.timing(position, {
-      toValue: shift ? 64 : 0,
+      toValue: shift ? 16 : 0,
       duration: 300,
       useNativeDriver: false,
     }).start();
   }, [shift]);
 
-  useEffect(() => {
-    updateButtonPublish();
-  }, [state]);
+  const clearForm = () => {
+    setState(initialPublicationState);
+  };
+
+  const createPost = () => {
+    navigation.navigate("Posts");
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -102,12 +144,12 @@ export default function CreatePostsScreen() {
             <View style={styles.photoContainer}>
               {state.imageURL ? (
                 <View>
-                  <ImageBackground
+                  <Image
                     source={{ uri: state.imageURL }}
                     style={styles.photo}
                   />
                   <View style={styles.photoIconBox}>
-                    <TouchableOpacity onPress={addPhoto}>
+                    <TouchableOpacity onPress={takePhoto}>
                       <View style={styles.transparentPhotoIcon}>
                         <IconFontAwesome
                           name="camera"
@@ -122,18 +164,25 @@ export default function CreatePostsScreen() {
               ) : (
                 <View>
                   <View style={styles.withoutPhotoContainer}>
-                    <View style={styles.photoIconBox}>
-                      <TouchableOpacity onPress={addPhoto}>
-                        <View style={styles.whitePhotoIcon}>
-                          <IconFontAwesome
-                            name="camera"
-                            size={24}
-                            style={styles.iconWithoutPhoto}
-                          />
-                        </View>
-                      </TouchableOpacity>
-                    </View>
+                    <Camera
+                      style={styles.camera}
+                      type={type}
+                      ref={setCameraRef}
+                    >
+                      <View style={styles.photoIconBox}>
+                        <TouchableOpacity onPress={takePhoto}>
+                          <View style={styles.whitePhotoIcon}>
+                            <IconFontAwesome
+                              name="camera"
+                              size={24}
+                              style={styles.iconWithoutPhoto}
+                            />
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+                    </Camera>
                   </View>
+
                   <Text style={styles.text}>Завантажте фото</Text>
                 </View>
               )}
@@ -155,13 +204,13 @@ export default function CreatePostsScreen() {
               />
               <TextInput
                 placeholder="Місцевість..."
-                value={state.location}
+                value={state.geolocation.country}
                 style={styles.locationInput}
                 placeholderTextColor="#BDBDBD"
                 onChangeText={(text) => {
                   setState((prevState) => ({
                     ...prevState,
-                    location: text,
+                    geolocation: { country: text },
                   }));
                 }}
               />
@@ -183,7 +232,6 @@ export default function CreatePostsScreen() {
                 Опублікувати
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               onPress={() => {
                 clearForm();
@@ -199,7 +247,7 @@ export default function CreatePostsScreen() {
               disabled={
                 !state.imageURL &&
                 state.name.length < 1 &&
-                state.location.length < 1
+                Object.keys(state.location).length < 1
               }
             >
               <IconFeather
@@ -208,7 +256,7 @@ export default function CreatePostsScreen() {
                 style={[
                   state.imageURL ||
                   state.name.length > 0 ||
-                  state.location.length > 0
+                  Object.keys(state.location) > 0
                     ? styles.iconDeleteActive
                     : styles.iconDeleteInactive,
                 ]}
@@ -246,8 +294,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
   },
-  withPhotoContainer: {    
-    height: 240,    
+  withPhotoContainer: {
+    height: 240,
     overflow: "hidden",
     borderRadius: 8,
   },
@@ -258,9 +306,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#F6F6F6",
   },
-  photo: {    
+  photo: {
     width: widthPhotoContainer,
-    height: 240,    
+    height: 240,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -268,7 +316,7 @@ const styles = StyleSheet.create({
   photoIconBox: {
     position: "absolute",
     top: 90,
-    left: leftPositionFoto,    
+    left: leftPositionFoto,
     zIndex: 2,
   },
   transparentPhotoIcon: {
@@ -316,7 +364,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   locationContainer: {
-    width: widthPhotoContainer,    
+    width: widthPhotoContainer,
     height: 50,
     marginBottom: 32,
     flexDirection: "row",
@@ -337,7 +385,7 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     paddingTop: 16,
     paddingBottom: 15,
-    marginLeft: 4,    
+    marginLeft: 4,
   },
   button: {
     display: "flex",
@@ -346,7 +394,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     marginBottom: 24,
     flexDirection: "column",
-    alignItems: "center",    
+    alignItems: "center",
     borderRadius: 100,
     backgroundColor: "#FF6C00",
   },
@@ -385,5 +433,54 @@ const styles = StyleSheet.create({
   },
   iconDeleteInactive: {
     color: "#BDBDBD",
+  },
+  // - - - - - - - - - -
+  camera: { flex: 1 },
+  photoView: {
+    flex: 1,
+    display: "flex",
+    backgroundColor: "transparent",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+
+  flipContainer: {
+    flex: 0.1,
+    position: "absolute",
+    bottom: 8,
+    right: 15,
+    alignSelf: "flex-end",
+    justifyContent: "flex-end",
+  },
+  buttonCamera: {
+    display: "flex",
+    justifyContent: "center",   
+    height: 40,
+    width: 72,
+    marginBottom: 10,    
+    paddingHorizontal: 18,
+    paddingVertical: 0,    
+    borderRadius: 72,
+    backgroundColor: "#FF6C00",
+  },
+
+  takePhotoOut: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: 34,
+    width: 34,
+    borderWidth: 2,
+    borderColor: "white",
+    borderRadius: 34,
+  },
+
+  takePhotoInner: {
+    borderWidth: 2,
+    borderColor: "white",
+    height: 24,
+    width: 24,
+    backgroundColor: "white",
+    borderRadius: 24,
   },
 });
