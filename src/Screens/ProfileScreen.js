@@ -1,15 +1,18 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
   Text,
   View,
   ImageBackground,
-  Image,
-  TextInput,
+  Image,  
   TouchableOpacity,
   ScrollView,
-  Dimensions,
+  Dimensions, 
+  RefreshControl,
+  Alert,
+  Animated,
+  Keyboard,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import IconIonicons from "react-native-vector-icons/Ionicons";
@@ -17,74 +20,122 @@ import IconFeather from "react-native-vector-icons/Feather";
 import IconAntDesign from "react-native-vector-icons/AntDesign";
 import * as ImagePicker from "expo-image-picker";
 import ButtonLogOut from "../components/ButtonLogOut";
-
-const defaultDataArrayPosts = [
-  {
-    id: 1,
-    publicationPhoto: require("../img/Forest.jpg"),
-    publicationName: "Ліс",
-    publicationCommentCount: 8,
-    publicationLikeCount: 153,
-    publicationLocation: "Ukraine",
-  },
-  {
-    id: 2,
-    publicationPhoto: require("../img/Sunset.jpg"),
-    publicationName: "Захід на Чорному морі",
-    publicationCommentCount: 3,
-    publicationLikeCount: 200,
-    publicationLocation: "Ukraine",
-  },
-  {
-    id: 3,
-    publicationPhoto: require("../img/Old_Home.jpg"),
-    publicationName: "Старий будиночок у Венеції",
-    publicationCommentCount: 50,
-    publicationLikeCount: 200,
-    publicationLocation: "Italy",
-  },
-];
+import { useDispatch, useSelector } from "react-redux";
+import { addLike, getMyPosts } from "../redux/posts/postsOperations";
+import { pageRefresh } from "../helpers/index";
+import { selectUser } from "../redux/auth/authSelectors";
+import { selectMyPosts } from "../redux/posts/postsSelectors";
 
 export default function ProfileScreen() {
+  const [shift, setShift] = useState(false);
+  const [position] = useState(new Animated.Value(0));
   const navigation = useNavigation();
-  const [image, setImage] = useState("");
-  const [dataArrayPosts, setDataArrayPosts] = useState(defaultDataArrayPosts);
+  const [update, setUpdate] = useState(false);
+  const dispatch = useDispatch();
+  const user = useSelector(selectUser);
+  const myPosts = useSelector(selectMyPosts);  
+  const [image, setImage] = useState(user.photoURL);
 
-  const addLike = async (id, likes) => {
-    const post = dataArrayPosts.find((item) => {
-      return item.id === id;
+  useEffect(() => {
+    dispatch(getMyPosts());
+  }, [dispatch]);
+
+  const fetchMyPosts = async () => {
+    setUpdate(true);
+    try {
+      dispatch(getMyPosts());
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    }
+    setUpdate(false);
+  };
+
+  const addNewLike = async (id, likes) => {    
+    const value = (likes += 1);
+    dispatch(addLike({ id, value }));
+
+    pageRefresh(id, () => {
+      dispatch(getMyPosts());
     });
-    const number = dataArrayPosts.findIndex((item) => {
-      return item.id === id;
-    });
-
-    const newPost = { ...post, publicationLikeCount: likes + 1 };
-
-    const oldDataArrayPosts = dataArrayPosts;
-    const delPost = oldDataArrayPosts.splice(number, 1, newPost);
-
-    setDataArrayPosts([...oldDataArrayPosts]);
   };
 
   const addPhotoUser = async () => {
+    Alert.alert(
+      "Виберіть фото",
+      " ",
+      [
+        { text: "Закрити", callingCode: true, style: "cancel" },
+        { text: "Галерея", onPress: () => selectImageGalery() },
+        { text: "Камера", onPress: () => selectImageCamera() },
+      ],
+      { cancelable: true, style: "border-radius = 10px" }
+    );
+  };
+
+  const selectImageGalery = async () => {
     const options = {
       mediaType: "photo",
     };
-
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 4],
     });
 
-    if (result.assets && result.assets.length > 0) {
-      setImage(result.assets[0].uri);
+    if (result.canceled) {
+      Alert.alert("Вибір фотографії скасовано", "", [], { cancelable: true });
+    } else if (result.error) {
+      Alert.alert("Помилка вибору фото", "", [], { cancelable: true });
+    } else if (result.assets && result.assets.length > 0) {
+      setImage(result.assets[0].uri);      
+    }
+  };
+
+  const selectImageCamera = async () => {
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      includeBase64: false,
+      maxHeight: 120,
+      maxWidth: 120,
+    });
+    if (result.canceled) {
+      Alert.alert("Користувач відмінив використання камери", "", [], {
+        cancelable: true,
+      });
+    } else if (result.error) {
+      Alert.alert("Помилка камери", "", [], {
+        cancelable: true,
+      });
+    } else if (result.assets && result.assets.length > 0) {
+      setImage(result.assets[0].uri);      
     }
   };
 
   const deletePhotoUser = () => {
     setImage("");
   };
+
+  useEffect(() => {
+    const listenerShow = Keyboard.addListener("keyboardDidShow", () => {
+      setShift(true);
+    });
+    const listenerHide = Keyboard.addListener("keyboardDidHide", () => {
+      setShift(false);
+    });
+
+    return () => {
+      listenerShow.remove();
+      listenerHide.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    Animated.timing(position, {
+      toValue: shift ? 32 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [shift]);
 
   return (
     <View style={styles.container}>
@@ -98,7 +149,7 @@ export default function ProfileScreen() {
           {image ? (
             <View style={styles.withPhotoUser}>
               <ImageBackground
-                source={{ uri: image }}
+                source={image ? { uri: image } : require("../img/Ellipse.jpg")}
                 style={styles.photoUser}
               ></ImageBackground>
               <TouchableOpacity
@@ -132,26 +183,30 @@ export default function ProfileScreen() {
         <View style={styles.containerLogOut}>
           <ButtonLogOut />
         </View>
-        <Text style={styles.nameUser}>Natali Romanova</Text>
+        <Text style={styles.nameUser}>{user.displayName}</Text>
         <ScrollView
           contentContainerStyle={styles.scrollViewContainer}
           bounces={false}
           overScrollMode={"auto"}
+          refreshControl={
+            <RefreshControl refreshing={update} onRefresh={fetchMyPosts} />
+          }
         >
-          {dataArrayPosts.map((post) => {
+          {myPosts.map((post) => {
             return (
               <View style={styles.publicationContainer} key={post.id}>
                 <Image
-                  source={post.publicationPhoto}
+                  source={{ uri: post.imageURL }}
                   style={styles.publicationPhoto}
                 />
-                <Text style={styles.publicationName}>
-                  {post.publicationName}
-                </Text>
+                <Text style={styles.publicationName}>{post.name}</Text>
                 <View style={styles.publicationDataContainer}>
                   <TouchableOpacity
                     onPress={() => {
-                      navigation.navigate("Comments", { idPost: post.id });
+                      navigation.navigate("Comments", {
+                        idPost: post.id,
+                        imageURL: post.imageURL,
+                      });
                     }}
                     style={styles.publicationCommentContainer}
                   >
@@ -160,28 +215,28 @@ export default function ProfileScreen() {
                       size={24}
                       style={styles.icon}
                     />
-                    <Text style={styles.counts}>
-                      {post.publicationCommentCount}
-                    </Text>
+                    <Text style={styles.counts}>{post.comments.length}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => addLike(post.id, post.publicationLikeCount)}
+                    onPress={() => addNewLike(post.id, post.likes)}
                     style={styles.publicationLikeContainer}
                   >
                     <IconFeather
                       name="thumbs-up"
                       size={24}
-                      style={styles.iconLikeGray}
+                      style={styles.iconLikeMainlyRED}
                     />
                     <Text style={[styles.counts, styles.countLike]}>
-                      {post.publicationLikeCount}
+                      {post.likes}
                     </Text>
                   </TouchableOpacity>
                   <View>
                     <TouchableOpacity
                       style={styles.publicationLocationContainer}
                       onPress={() => {
-                        navigation.navigate("Map");
+                        navigation.navigate("Map", {
+                          imgLocation: post.location,
+                        });
                       }}
                     >
                       <IconAntDesign
@@ -190,7 +245,7 @@ export default function ProfileScreen() {
                         style={styles.iconLocation}
                       />
                       <Text style={styles.locationText}>
-                        {post.publicationLocation}
+                        {post.geolocation.country}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -233,7 +288,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 20,
-
     backgroundColor: "#BDBDBD",
   },
   photoUser: {
@@ -329,6 +383,9 @@ const styles = StyleSheet.create({
   },
   iconLikeGray: {
     color: "#BDBDBD",
+  },
+  iconLikeMainlyRED: {
+    color: "#FF6C00",
   },
   countLike: {
     color: "#BDBDBD",

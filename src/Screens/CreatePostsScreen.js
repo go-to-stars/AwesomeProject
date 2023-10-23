@@ -11,14 +11,18 @@ import {
   Dimensions,
   Animated,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from "react-native";
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
 import { useNavigation } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
 import IconFontAwesome from "react-native-vector-icons/FontAwesome";
 import IconAntDesign from "react-native-vector-icons/AntDesign";
 import IconFeather from "react-native-vector-icons/Feather";
 import * as Location from "expo-location";
+import { selectIsLoading } from "../redux/posts/postsSelectors";
+import { createPost } from "../redux/posts/postsOperations";
 
 const initialPublicationState = {
   name: "",
@@ -42,16 +46,22 @@ export default function CreatePostsScreen() {
   const [isButtonActive, setIsButtonActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState({});
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const dispatch = useDispatch();
+  const isLoading = useSelector(selectIsLoading);  
 
   const updateButtonPublish = () => {
     const isPhoto = !!state.imageURL;
     const isName = !!state.name;
     const isLocation = !!state.location;
     const hasErrors = Object.keys(errorMsg).length > 0;
-    setIsButtonActive(
-      isCameraActive && isPhoto && isName && isLocation && !hasErrors
+    setIsButtonActive(      
+      isPhoto && isName && isLocation && !hasErrors
     );
   };
+
+  useEffect(() => {
+    updateButtonPublish();
+  }, [state]);
 
   useEffect(() => {
     (async () => {
@@ -60,10 +70,8 @@ export default function CreatePostsScreen() {
 
       setHasPermission(status === "granted");
     })();
-    setIsCameraActive(true);
-    updateButtonPublish();
-    console.log(state);
-  }, [state, errorMsg, isCameraActive]);
+    setIsCameraActive(true);    
+  }, []);
 
   const getCurrentLocation = async () => {
     try {
@@ -76,8 +84,8 @@ export default function CreatePostsScreen() {
       const location = await Location.getCurrentPositionAsync({});
       let geoLocation = await Location.reverseGeocodeAsync(location.coords);
 
-      setState((prevState) => ({
-        ...prevState,
+      setState((prevValues) => ({
+        ...prevValues,
         location: {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
@@ -125,13 +133,55 @@ export default function CreatePostsScreen() {
     }).start();
   }, [shift]);
 
+  const validateForm = () => {
+    const errors = {};
+
+    if (!state.imageURL) {
+      errors.photo = "Фото обов'язкове";
+    }
+    if (!state.name) {
+      errors.name = "Назва обов'язкова";
+    }
+    if (!state.location) {
+      errors.location = "Місцезнаходження обов'язкове";
+    }
+    setErrorMsg(errors);
+
+    return Object.keys(errors).length === 0;
+  };
+
   const clearForm = () => {
     setState(initialPublicationState);
   };
 
-  const createPost = () => {
-    navigation.navigate("Posts");
+  const createUserPost = () => {
+    const isvalidData = validateForm();    
+    if (isvalidData) {
+      const newPublication = {
+        name: state.name,
+        location: state.location,
+        geolocation: state.geolocation,
+        imageURL: state.imageURL,
+      };      
+      dispatch(createPost(newPublication));      
+      navigation.navigate("Posts");
+    }    
   };
+
+
+  const onChangeText = (e) => {    
+    setState((prevValues) => ({
+      ...prevValues,
+      name: e,
+    }));    
+  };
+
+  const onChangeLocation = (e) => {
+    setState((prevValues) => ({
+      ...prevValues,
+      geolocation: { country: e },
+    }));
+  }; 
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -192,9 +242,7 @@ export default function CreatePostsScreen() {
               value={state.name}
               style={styles.input}
               placeholderTextColor="#BDBDBD"
-              onChangeText={(text) => {
-                setState((prevState) => ({ ...prevState, name: text }));
-              }}
+              onChangeText={onChangeText}
             />
             <View style={styles.locationContainer}>
               <IconAntDesign
@@ -207,18 +255,13 @@ export default function CreatePostsScreen() {
                 value={state.geolocation.country}
                 style={styles.locationInput}
                 placeholderTextColor="#BDBDBD"
-                onChangeText={(text) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    geolocation: { country: text },
-                  }));
-                }}
+                onChangeText={onChangeLocation}
               />
             </View>
             <TouchableOpacity
               style={[styles.button, !isButtonActive && styles.inactiveButton]}
               onPress={() => {
-                createPost();
+                createUserPost();
                 clearForm();
               }}
               disabled={!isButtonActive}
@@ -262,6 +305,7 @@ export default function CreatePostsScreen() {
                 ]}
               />
             </TouchableOpacity>
+            {isLoading && <ActivityIndicator size="small" color="#FF6C00" />}
           </Animated.View>
         </ScrollView>
       </View>
@@ -454,12 +498,12 @@ const styles = StyleSheet.create({
   },
   buttonCamera: {
     display: "flex",
-    justifyContent: "center",   
+    justifyContent: "center",
     height: 40,
     width: 72,
-    marginBottom: 10,    
+    marginBottom: 10,
     paddingHorizontal: 18,
-    paddingVertical: 0,    
+    paddingVertical: 0,
     borderRadius: 72,
     backgroundColor: "#FF6C00",
   },

@@ -3,8 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
   Text,
-  View,
-  Image,
+  View,  
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -13,25 +12,68 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
+import { logIn } from "../redux/auth/authOperations";
+// import { userVerification } from "../firebase";
+import {
+  selectUser,
+  selectIsLoggedIn,
+  selectIsLoading,
+} from "../redux/auth/authSelectors";
+// import { onAuthStateChanged } from "firebase/auth";
+
+const initialState = {
+  email: "",
+  password: "",
+  photoURL: "",
+};
+
+const initialErrorMsg = {
+  photo: "",
+  password: "",
+};
+
+const emailRegex = /^[-\w.]+@([A-z0-9][-A-z0-9]+\.)+[A-z]{2,4}$/;
 
 export default function LoginScreen() {
   const [shift, setShift] = useState(false);
-  const [position] = useState(new Animated.Value(0));
-  const [textEmail, setTextEmail] = useState("");
-  const [textPassword, setTextPassword] = useState("");
+  const [position] = useState(new Animated.Value(0)); 
   const [isVisiblePassword, setVisiblePassword] = useState(false);
   const [isEmailFocused, setEmailFocused] = useState(false);
   const [isPasswordFocused, setPasswordFocused] = useState(false);
   const navigation = useNavigation();
+  const [state, setState] = useState(initialState);
+  const dispatch = useDispatch();
+  const [errorMsg, setErrorMsg] = useState(initialErrorMsg); 
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+  const isLoading = useSelector(selectIsLoading);
 
   const onLogin = () => {
-    setTextEmail("");
-    setTextPassword("");
-    console.log("Credentials", `${textEmail} + ${textPassword}`);
-    navigation.navigate("BottomNavigator");
+    
+    const isvalidEmail = validateForm();
+    if (isvalidEmail) {
+      const logInData = {
+        email: state.email,
+        password: state.password,
+      };
+      dispatch(logIn(logInData));
+      clearForm();      
+    } 
   };
+
+  useEffect(() => {
+    if (      
+      isLoggedIn
+    ) {      
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "BottomNavigator" }],
+      });
+    }
+  }, [isLoggedIn]);
 
   const handleFocus = (input) => {
     if (input === "email") {
@@ -49,11 +91,17 @@ export default function LoginScreen() {
   };
 
   const onChangeTextEmail = (e) => {
-    setTextEmail(e);
+    setState((prevValues) => ({
+      ...prevValues,
+      email: e,
+    }));
   };
 
   const onChangeTextPassword = (e) => {
-    setTextPassword(e);
+    setState((prevValues) => ({
+      ...prevValues,
+      password: e,
+    }));
   };
 
   useEffect(() => {
@@ -78,6 +126,41 @@ export default function LoginScreen() {
     }).start();
   }, [shift]);
 
+  const isValidEmail = (email) => {
+    return emailRegex.test(email);
+  };
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!state.email) {
+      errors.email = "Електронна пошта обов'язкова";
+    } else if (!isValidEmail(state.email) || state.email.length < 5) {
+      errors.email = "Введіть дійсну електронну пошту";
+    } else {
+      const emailVeryfy = state.email;      
+      // const userExists = userVerification(emailVeryfy);
+      const userExists = false;
+      if (userExists) {
+        errors.email = "Користувач з такою електронною адресою вже існує!";
+      }
+    }
+
+    if (!state.password) {
+      errors.password = "Пароль обов'язковий";
+    } else if (state.password.length < 7) {
+      errors.password = "Довжина паролю повинна бути не менше 7 символів!";
+    }
+
+    setErrorMsg(errors);
+
+    return Object.keys(errors).length === 0;
+  };
+
+  const clearForm = () => {
+    setState(initialState);
+  };
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
@@ -96,17 +179,23 @@ export default function LoginScreen() {
           >
             <Text style={styles.title}>Увійти</Text>
             <View style={styles.inputsContainer}>
+              {errorMsg.email && !isEmailFocused && (
+                <Text style={styles.errorMsg}>{errorMsg.email}</Text>
+              )}
               <TextInput
                 placeholder="Адреса електронної пошти"
                 style={isEmailFocused ? styles.inputFocused : styles.input}
                 autoComplete="email"
                 autoCapitalize="none"
                 keyboardType="email-address"
-                value={textEmail}
+                value={state.email}
                 onChangeText={onChangeTextEmail}
                 onFocus={() => handleFocus("email")}
                 onBlur={() => handleBlur("email")}
               />
+              {errorMsg.password && !isPasswordFocused && (
+                <Text style={styles.errorMsg}>{errorMsg.password}</Text>
+              )}
               <View style={styles.passwordContainer}>
                 <TextInput
                   placeholder="Пароль"
@@ -117,7 +206,7 @@ export default function LoginScreen() {
                   }
                   autoComplete="password"
                   autoCapitalize="none"
-                  value={textPassword}
+                  value={state.password}
                   secureTextEntry={!isVisiblePassword}
                   onChangeText={onChangeTextPassword}
                   onFocus={() => handleFocus("password")}
@@ -150,6 +239,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            {isLoading && <ActivityIndicator size="small" color={"#FF6C00"} />}
           </Animated.View>
         </ScrollView>
       </View>
@@ -280,7 +370,7 @@ const styles = StyleSheet.create({
     fontStyle: "normal",
     fontWeight: "400",
     backgroundColor: "#F6F6F6",
-    color: "#212121",    
+    color: "#212121",
     borderWidth: 1,
     borderColor: "#E8E8E8",
     borderRadius: 5,
@@ -297,7 +387,7 @@ const styles = StyleSheet.create({
     fontStyle: "normal",
     fontWeight: "400",
     backgroundColor: "#FFF",
-    color: "#212121",    
+    color: "#212121",
     borderWidth: 1,
     borderColor: "#FF6C00",
     borderRadius: 5,
@@ -322,7 +412,7 @@ const styles = StyleSheet.create({
     fontStyle: "normal",
     fontWeight: "400",
     backgroundColor: "#F6F6F6",
-    color: "#212121",    
+    color: "#212121",
     flex: 1,
     borderWidth: 1,
     borderColor: "#E8E8E8",
@@ -339,7 +429,7 @@ const styles = StyleSheet.create({
     fontStyle: "normal",
     fontWeight: "400",
     backgroundColor: "#FFF",
-    color: "#212121",    
+    color: "#212121",
     flex: 1,
     borderWidth: 1,
     borderColor: "#FF6C00",
@@ -404,5 +494,9 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
     textDecorationColor: "#1B4371",
     color: "#1B4371",
+  },
+  spinner: {
+    marginBottom: 15,
+    color: "#FF6C00",
   },
 });

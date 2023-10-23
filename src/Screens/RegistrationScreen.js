@@ -13,46 +13,139 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/AntDesign";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
+import { register } from "../redux/auth/authOperations";
+import { userVerification } from "../firebase";
+import {
+  selectUser,
+  selectIsLoggedIn,
+  selectIsLoading,
+  selectError,
+} from "../redux/auth/authSelectors";
+
+const initialState = {
+  displayName: "",
+  email: "",
+  password: "",
+  photoURL: "",
+};
+
+const initialErrorMsg = {
+  photo: "",
+  displayName: "",
+  password: "",
+};
+
+const emailRegex = /^[-\w.]+@([A-z0-9][-A-z0-9]+\.)+[A-z]{2,4}$/;
 
 export default function RegistrationScreen() {
   const [shift, setShift] = useState(false);
   const [position] = useState(new Animated.Value(0));
+  const [state, setState] = useState(initialState);
   const [image, setImage] = useState("");
-  const [textLogin, setTextLogin] = useState("");
-  const [textEmail, setTextEmail] = useState("");
-  const [textPassword, setTextPassword] = useState("");
   const [isVisiblePassword, setVisiblePassword] = useState(false);
   const [isLoginFocused, setLoginFocused] = useState(false);
   const [isEmailFocused, setEmailFocused] = useState(false);
   const [isPasswordFocused, setPasswordFocused] = useState(false);
   const navigation = useNavigation();
-
-  const onRegistration = () => {
-    setTextLogin("");
-    setTextEmail("");
-    setTextPassword("");
-    console.log("Credentials", `${textLogin} + ${textEmail} + ${textPassword}`);
-  };
+  const dispatch = useDispatch();
+  const [errorMsg, setErrorMsg] = useState(initialErrorMsg);  
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+  const isLoading = useSelector(selectIsLoading);
+  const isError = useSelector(selectError);
 
   const addPhotoUser = async () => {
+    Alert.alert(
+      "Виберіть фото",
+      " ",
+      [
+        { text: "Закрити", callingCode: true, style: "cancel" },
+        { text: "Галерея", onPress: () => selectImageGalery() },
+        { text: "Камера", onPress: () => selectImageCamera() },
+      ],
+      { cancelable: true, style: "border-radius = 10px" }
+    );
+  };
+
+  const addPhotoUrl = (url) => {
+    setState((prevValues) => ({
+      ...prevValues,
+      photoURL: url,
+    }));
+  };
+
+  const selectImageGalery = async () => {
     const options = {
       mediaType: "photo",
     };
-
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 4],
     });
 
-    if (result.assets && result.assets.length > 0) {
+    if (result.canceled) {
+      Alert.alert("Вибір фотографії скасовано", "", [], { cancelable: true });
+    } else if (result.error) {
+      Alert.alert("Помилка вибору фото", "", [], { cancelable: true });
+    } else if (result.assets && result.assets.length > 0) {
       setImage(result.assets[0].uri);
+      addPhotoUrl(result.assets[0].uri);
     }
   };
+
+  const selectImageCamera = async () => {
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      includeBase64: false,
+      maxHeight: 120,
+      maxWidth: 120,
+    });
+    if (result.canceled) {
+      Alert.alert("Користувач відмінив використання камери", "", [], {
+        cancelable: true,
+      });
+    } else if (result.error) {
+      Alert.alert("Помилка камери", "", [], {
+        cancelable: true,
+      });
+    } else if (result.assets && result.assets.length > 0) {
+      setImage(result.assets[0].uri);
+      addPhotoUrl(result.assets[0].uri);
+    }
+  };
+
+  const onRegistration = async () => {
+    const isvalidEmail = validateForm();
+
+    if (isvalidEmail) {
+      const registrationData = {
+        displayName: state.displayName,
+        email: state.email,
+        password: state.password,
+        photoURL: state.photoURL,
+      };
+      dispatch(register(registrationData));
+      clearForm();
+    }
+  };
+
+  useEffect(() => {
+    if (      
+      isLoggedIn
+    ) {     
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "BottomNavigator" }],
+      });
+    }
+  }, [isLoggedIn]);
 
   const deletePhotoUser = () => {
     setImage("");
@@ -81,15 +174,64 @@ export default function RegistrationScreen() {
   };
 
   const onChangeTextLogin = (e) => {
-    setTextLogin(e);
+    setState((prevValues) => ({
+      ...prevValues,
+      displayName: e,
+    }));
   };
 
   const onChangeTextEmail = (e) => {
-    setTextEmail(e);
+    setState((prevValues) => ({
+      ...prevValues,
+      email: e,
+    }));
   };
 
   const onChangeTextPassword = (e) => {
-    setTextPassword(e);
+    setState((prevValues) => ({
+      ...prevValues,
+      password: e,
+    }));
+  };
+
+  const isValidEmail = (email) => {
+    return emailRegex.test(email);
+  };
+
+  const validateForm = async () => {
+    const errors = {};
+
+    if (!state.displayName) {
+      errors.displayName = "Логін обов'язковий";
+    }
+
+    if (!state.email) {
+      errors.email = "Електронна пошта обов'язкова";
+    } else if (!isValidEmail(state.email) || state.email.length < 5) {
+      errors.email = "Введіть дійсну електронну пошту";
+    } else {
+      const emailVeryfy = state.email;
+
+      // const userExists = await userVerification(emailVeryfy);
+      const userExists = false;
+      if (userExists) {
+        errors.email = "Користувач з такою електронною адресою вже існує!";
+      }
+    }
+
+    if (!state.password) {
+      errors.password = "Пароль обов'язковий";
+    } else if (state.password.length < 7) {
+      errors.password = "Довжина паролю повинна бути не менше 7 символів!";
+    }
+
+    setErrorMsg(errors);
+
+    return Object.keys(errors).length === 0;
+  };
+
+  const clearForm = () => {
+    setState(initialState);
   };
 
   useEffect(() => {
@@ -133,10 +275,12 @@ export default function RegistrationScreen() {
             <View style={styles.photoContainer}>
               {image ? (
                 <View style={styles.withPhotoUser}>
-                  <ImageBackground
-                    source={{ uri: image }}
+                  <Image
+                    source={
+                      image ? { uri: image } : require("../img/Ellipse.jpg")
+                    }
                     style={styles.photoUser}
-                  ></ImageBackground>
+                  ></Image>
                   <TouchableOpacity
                     onPress={() => {
                       deletePhotoUser();
@@ -164,29 +308,41 @@ export default function RegistrationScreen() {
                   </TouchableOpacity>
                 </View>
               )}
+              {errorMsg.photo && (
+                <Text style={styles.errorMsgPhoto}>{errorMsg.photo}</Text>
+              )}
             </View>
             <Text style={styles.title}>Реєстрація</Text>
             <View style={styles.inputsContainer}>
+              {errorMsg.name && !isLoginFocused && (
+                <Text style={styles.errorMsg}>{errorMsg.displayName}</Text>
+              )}
               <TextInput
                 placeholder="Логін"
                 style={isLoginFocused ? styles.inputFocused : styles.input}
                 autoComplete="username"
-                value={textLogin}
+                value={state.displayName}
                 onChangeText={onChangeTextLogin}
                 onFocus={() => handleFocus("username")}
                 onBlur={() => handleBlur("username")}
               />
+              {errorMsg.email && !isEmailFocused && (
+                <Text style={styles.errorMsg}>{errorMsg.email}</Text>
+              )}
               <TextInput
                 placeholder="Адреса електронної пошти"
                 style={isEmailFocused ? styles.inputFocused : styles.input}
                 autoComplete="email"
                 autoCapitalize="none"
                 keyboardType="email-address"
-                value={textEmail}
+                value={state.email}
                 onChangeText={onChangeTextEmail}
                 onFocus={() => handleFocus("email")}
                 onBlur={() => handleBlur("email")}
               />
+              {errorMsg.password && !isPasswordFocused && (
+                <Text style={styles.errorMsg}>{errorMsg.password}</Text>
+              )}
               <View style={styles.passwordContainer}>
                 <TextInput
                   placeholder="Пароль"
@@ -197,7 +353,7 @@ export default function RegistrationScreen() {
                   }
                   autoComplete="password"
                   autoCapitalize="none"
-                  value={textPassword}
+                  value={state.password}
                   secureTextEntry={!isVisiblePassword}
                   onChangeText={onChangeTextPassword}
                   onFocus={() => handleFocus("password")}
@@ -212,6 +368,9 @@ export default function RegistrationScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            {isError && (
+              <Text style={styles.errorMsg}>{"Помилка реєстрації!"}</Text>
+            )}
             <View style={styles.noKeyboardField}>
               <TouchableOpacity
                 style={styles.buttonRegistration}
@@ -228,6 +387,7 @@ export default function RegistrationScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            {isLoading && <ActivityIndicator size="small" color={"#FF6C00"} />}
           </Animated.View>
         </ScrollView>
       </View>
@@ -304,6 +464,15 @@ const styles = StyleSheet.create({
     position: "relative",
     left: 107,
     top: 81,
+    color: "#FF6C00",
+  },
+  errorMsgPhoto: {
+    alignSelf: "center",
+    top: -50,
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    fontStyle: "normal",
+    fontWeight: "400",
     color: "#FF6C00",
   },
   title: {
@@ -530,5 +699,16 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
     textDecorationColor: "#1B4371",
     color: "#1B4371",
+  },
+  errorMsg: {
+    color: "#FF6C00",
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    fontStyle: "normal",
+    fontWeight: "400",
+  },
+  spinner: {
+    marginBottom: 15,
+    color: "#FF6C00",
   },
 });
