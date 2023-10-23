@@ -87,8 +87,7 @@ const authSlice = createSlice({
 
       // = = = = = = = = = = = = = = = REGISTER = = = = = = = = = = = = = = =
       .addCase(register.pending, (state) => {
-        state.isLoading = true;
-        state.errorRegister = null;
+        state.isLoading = true;        
         state.error = null;
       })
       .addCase(register.fulfilled, (state, action) => {
@@ -99,36 +98,29 @@ const authSlice = createSlice({
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
-        state.errorRegister = action.error.message;
+        state.error = action.payload;        
       })
 
       // = = = = = = = = = = = = = = = LOGIN = = = = = = = = = = = = = = =
       .addCase(logIn.pending, (state) => {
         state.isLoading = true;
-        state.error = null;
-        state.errorLogin = null;
+        state.error = null;        
       })
       .addCase(logIn.fulfilled, (state, action) => {        
         state.isLoading = false;
         state.isLoggedIn = true;
         state.user = action.payload;        
-        state.error = null;
-        state.errorRegister = null;
-        state.errorDeleteAvatar = null;
-        state.errorAddAvatar = null;
+        state.error = null;        
       })
       .addCase(logIn.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
-        state.errorLogin = action.error.message;
+        state.error = action.payload;        
       })
 
       // = = = = = = = = = = = = = = = LOGOUT = = = = = = = = = = = = = = =
       .addCase(logOut.pending, (state) => {
         state.isLoading = true;
-        state.error = null;
-        state.errorLogOut = null;
+        state.error = null;        
       })
       .addCase(logOut.fulfilled, (state) => {
         state.isLoading = false;
@@ -143,15 +135,13 @@ const authSlice = createSlice({
       })
       .addCase(logOut.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
-        state.errorLogOut = action.payload;
+        state.error = action.payload;        
       })
 
       // = = = = = = = = = = = = = = = REFRESH = = = = = = = = = = = = = = =
       .addCase(refresh.pending, (state) => {
         state.isLoading = true;
-        state.error = null;
-        state.errorRefresh = null;
+        state.error = null;        
       })
       .addCase(refresh.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -160,26 +150,22 @@ const authSlice = createSlice({
       })
       .addCase(refresh.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
-        state.errorRefresh = action.error.message;
+        state.error = action.payload;        
       })
 
       // = = = = = = = = = = = = = = = ADDPHOTO = = = = = = = = = = = = = = =
       .addCase(addPhoto.pending, (state) => {
         state.isLoading = true;
-        state.error = null;
-        state.errorAddPhotoUser = null;
+        state.error = null;        
       })
       .addCase(addPhoto.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.errorAddPhotoUser = null;
+        state.isLoading = false;        
         state.error = null;
         state.user.photoURL = action.payload;
       })
       .addCase(addPhoto.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
-        state.errorAddPhotoUser = action.payload;
+        state.error = action.payload;        
       })
 
       // = = = = = = = = = = = = = = = DELETEPHOTO = = = = = = = = = = = = = = =

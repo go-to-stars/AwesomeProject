@@ -1,8 +1,7 @@
 import * as ImageManipulator from "expo-image-manipulator";
 
 
-export default async function uploadImageOptimisation(uri) {
-  console.log("Uri:", uri);
+export default async function uploadImageOptimisation(uri) {  
   try {
     await ImageManipulator.manipulateAsync(uri, [{ resize: { height: 240 } }], {
       compress: 1,

@@ -49,7 +49,7 @@ export const register = createAsyncThunk(
       );
 
       const user = userCredential.user;
-      
+
       await updateProfile(user, {
         displayName,
         photoURL: userPhotoURL,
@@ -83,11 +83,11 @@ export const logIn = createAsyncThunk(
   async ({ email, password }, { rejectWithValue }) => {
     try {
       const user = await signInWithEmailAndPassword(auth, email, password);
-      
+
       if (!user) {
-        return rejectWithValue((error.message = "Email or password is wrong")); ;
+        return rejectWithValue((error.message = "Email or password is wrong"));
       }
-     
+
       const displayName = user._tokenResponse.displayName;
       const photoURL = user._tokenResponse.profilePicture;
 
@@ -131,7 +131,7 @@ export const addPhoto = createAsyncThunk(
   "auth/addPhoto",
   async (photoURL, { rejectWithValue }) => {
     try {
-      const blob = await uriToBlob(photoURL);
+      const blob = await convertUriToBlob(photoURL);
       const uniquePreffix = `${Date.now()}_${Math.round(Math.random() * 1e9)}`;
       const format = photoURL.split(".").pop();
       const storageRef = ref(storage, `avatar/${uniquePreffix}.${format}`);
@@ -140,15 +140,15 @@ export const addPhoto = createAsyncThunk(
       if (newUserPhotoURL === "error") {
         return rejectWithValue("error");
       }
-
       const user = auth.currentUser;
+
       updateUserPhotoInFirestore("users", "email", user.email, {
         photoURL: newUserPhotoURL,
       });
 
       await updateProfile(user, { photoURL: newUserPhotoURL });
 
-      return photoURL;
+      return newUserPhotoURL;
     } catch (error) {
       return rejectWithValue(error.message);
     }

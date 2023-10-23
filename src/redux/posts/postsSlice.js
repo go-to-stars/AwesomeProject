@@ -20,7 +20,7 @@ const postInitialState = {
   myPosts: [],
   allPosts: [],
   isLoading: false,
-  error: null,  
+  error: null,
 };
 
 // const isPending = (state) => {
@@ -36,45 +36,45 @@ const postSlice = createSlice({
   name: "posts",
   initialState: postInitialState,
   // extraReducers: {
-  //   [createPost.pending]: isPending, 
+  //   [createPost.pending]: isPending,
   //   [createPost.fulfilled](state, action) {
   //     state.isLoading = false;
   //     state.error = null;
-  //   }, 
-  //   [createPost.rejected]: isRejected, 
-  //   [getMyPosts.pending]: isPending, 
+  //   },
+  //   [createPost.rejected]: isRejected,
+  //   [getMyPosts.pending]: isPending,
   //   [getMyPosts.fulfilled](state, action) {
   //     state.isLoading = false;
   //     state.myPosts = action.payload;
   //     state.error = null;
-  //   }, 
-  //   [getMyPosts.rejected]: isRejected, 
-  //   [getAllPosts.pending]: isPending, 
+  //   },
+  //   [getMyPosts.rejected]: isRejected,
+  //   [getAllPosts.pending]: isPending,
   //   [getAllPosts.fulfilled](state, action) {
   //     state.isLoading = false;
   //     state.myPosts = action.payload;
   //     state.error = null;
-  //   }, 
-  //   [getAllPosts.rejected]: isRejected, 
-  //   [addLike.pending]: isPending, 
+  //   },
+  //   [getAllPosts.rejected]: isRejected,
+  //   [addLike.pending]: isPending,
   //   [addLike.fulfilled](state, action) {
   //     state.isLoading = false;
   //     state.error = null;
-  //   }, 
-  //   [addLike.rejected]: isRejected, 
-  //   [addComment.pending]: isPending, 
+  //   },
+  //   [addLike.rejected]: isRejected,
+  //   [addComment.pending]: isPending,
   //   [addComment.fulfilled](state, action) {
   //     state.isLoading = false;
   //     state.error = null;
-  //   }, 
-  //   [addComment.rejected]: isRejected, 
-  //   [getComment.pending]: isPending, 
+  //   },
+  //   [addComment.rejected]: isRejected,
+  //   [getComment.pending]: isPending,
   //   [getComment.fulfilled](state, action) {
   //     state.isLoading = false;
   //     state.comments = action.payload;
   //     state.error = null;
-  //   }, 
-  //   [getComment.rejected]: isRejected, 
+  //   },
+  //   [getComment.rejected]: isRejected,
   // },
   extraReducers: (builder) => {
     builder
@@ -83,109 +83,89 @@ const postSlice = createSlice({
       .addCase(createPost.pending, (state) => {
         state.isLoading = true;
         state.error = null;
-        state.errorCreatePost = null;
       })
       .addCase(createPost.fulfilled, (state) => {
         state.isLoading = false;
         state.error = null;
-        state.errorCreatePost = null;
       })
       .addCase(createPost.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-        state.errorCreatePost = action.payload;
       })
 
       // = = = = = = = = = = = = = = = GET MY POSTS = = = = = = = = = = = = = = =
       .addCase(getMyPosts.pending, (state) => {
         state.isLoading = true;
         state.error = null;
-        state.errorGetMyPost = null;
       })
       .addCase(getMyPosts.fulfilled, (state, action) => {
         state.myPosts = action.payload;
         state.isLoading = false;
         state.error = null;
-        state.errorGetMyPost = null;
       })
       .addCase(getMyPosts.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-        state.errorGetMyPost = action.payload;
       })
 
       // = = = = = = = = = = = = = = = GET ALL POSTS = = = = = = = = = = = = = = =
       .addCase(getAllPosts.pending, (state) => {
         state.isLoading = true;
         state.error = null;
-        state.errorGetAllPosts = null;
       })
       .addCase(getAllPosts.fulfilled, (state, action) => {
         state.allPosts = action.payload;
         state.isLoading = false;
         state.error = null;
-        state.errorGetAllPosts = null;
       })
       .addCase(getAllPosts.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-        state.errorGetAllPosts = action.payload;
       })
 
       // = = = = = = = = = = = = = = = ADD LIKE = = = = = = = = = = = = = = =
       .addCase(addLike.pending, (state) => {
         state.isLoading = true;
         state.error = null;
-        state.errorAddLike = null;
       })
       .addCase(addLike.fulfilled, (state) => {
         state.isLoading = false;
         state.error = null;
-        state.errorAddLike = null;
       })
       .addCase(addLike.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-        state.errorAddLike = action.payload;
       })
 
       // = = = = = = = = = = = = = = = ADD COMMENT = = = = = = = = = = = = = = =
       .addCase(addComment.pending, (state) => {
         state.isLoading = true;
         state.error = null;
-        state.errorAddComment = null;
       })
       .addCase(addComment.fulfilled, (state) => {
         state.isLoading = false;
         state.error = null;
-        state.errorAddComment = null;
       })
       .addCase(addComment.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-        state.errorAddComment = action.payload;
       })
 
       // = = = = = = = = = = = = = = = GET COMMENT = = = = = = = = = = = = = = =
       .addCase(getComment.pending, (state) => {
         state.isLoading = true;
         state.error = null;
-        state.errorGetCommentForCurrentPost = null;
       })
       .addCase(getComment.fulfilled, (state, action) => {
         state.comments = action.payload;
         state.isLoading = false;
         state.error = null;
-        state.errorGetCommentForCurrentPost = null;
       })
       .addCase(getComment.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-        state.errorGetCommentForCurrentPost = action.payload;
       });
   },
 });
 
 export const postsReducer = postSlice.reducer;
-
-

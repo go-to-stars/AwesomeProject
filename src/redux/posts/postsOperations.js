@@ -21,8 +21,7 @@ export const createPost = createAsyncThunk(
   "posts/create",
   async ({ name, location, geolocation, imageURL }, { rejectWithValue }) => {
     let postImageURL = "";
-    let storageRef = null;
-    console.log("25: ", { name, location, geolocation, imageURL });
+    let storageRef = null;   
     try {
       if (imageURL) {
         const blob = await convertUriToBlob(imageURL);

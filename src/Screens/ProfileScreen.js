@@ -5,10 +5,10 @@ import {
   Text,
   View,
   ImageBackground,
-  Image,  
+  Image,
   TouchableOpacity,
   ScrollView,
-  Dimensions, 
+  Dimensions,
   RefreshControl,
   Alert,
   Animated,
@@ -21,6 +21,7 @@ import IconAntDesign from "react-native-vector-icons/AntDesign";
 import * as ImagePicker from "expo-image-picker";
 import ButtonLogOut from "../components/ButtonLogOut";
 import { useDispatch, useSelector } from "react-redux";
+import { addPhoto, deletePhoto } from "../redux/auth/authOperations";
 import { addLike, getMyPosts } from "../redux/posts/postsOperations";
 import { pageRefresh } from "../helpers/index";
 import { selectUser } from "../redux/auth/authSelectors";
@@ -33,7 +34,7 @@ export default function ProfileScreen() {
   const [update, setUpdate] = useState(false);
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
-  const myPosts = useSelector(selectMyPosts);  
+  const myPosts = useSelector(selectMyPosts);
   const [image, setImage] = useState(user.photoURL);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function ProfileScreen() {
     setUpdate(false);
   };
 
-  const addNewLike = async (id, likes) => {    
+  const addNewLike = async (id, likes) => {
     const value = (likes += 1);
     dispatch(addLike({ id, value }));
 
@@ -88,6 +89,7 @@ export default function ProfileScreen() {
       Alert.alert("Помилка вибору фото", "", [], { cancelable: true });
     } else if (result.assets && result.assets.length > 0) {
       setImage(result.assets[0].uri);      
+      dispatch(addPhoto(result.assets[0].uri));
     }
   };
 
@@ -107,12 +109,16 @@ export default function ProfileScreen() {
         cancelable: true,
       });
     } else if (result.assets && result.assets.length > 0) {
-      setImage(result.assets[0].uri);      
+      setImage(result.assets[0].uri);
+      dispatch(addPhoto(result.assets[0].uri));
     }
   };
 
   const deletePhotoUser = () => {
-    setImage("");
+    if (user && user.photoURL) {
+      dispatch(deletePhoto(user.photoURL));
+      setImage("");
+    }
   };
 
   useEffect(() => {
