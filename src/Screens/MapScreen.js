@@ -1,39 +1,37 @@
 import React, { useState, useEffect } from "react";
-import {
-  StyleSheet,  
-  View,  
-  Dimensions,
-  
-} from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { StyleSheet, View, Dimensions } from "react-native";
+import { useRoute } from "@react-navigation/native";
 
 import MapView, { PROVIDER_GOOGLE, Marker } from "react-native-maps";
 import * as Location from "expo-location";
 
 export default function MapScreen() {
-  const navigation = useNavigation();  
-  const [location, setLocation] = useState(null);
-  const [errorMsg, setErrorMsg] = useState(null);
+  const {
+    params: { imgLocation },
+  } = useRoute();  
+  const [location, setLocation] = useState(imgLocation);
+
 
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.log("У доступі до місцезнаходження відмовлено");
-      }
+    if (!location) {
+      (async () => {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          console.log("У доступі до місцезнаходження відмовлено");
+        }
 
-      let location = await Location.getCurrentPositionAsync({});
-      const coords = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-      setLocation(coords);
-    })();
+        let location = await Location.getCurrentPositionAsync({});
+        const coords = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        };
+        setLocation(coords);
+      })();
+    }
   }, []);
 
   return (
-
-    <View style={styles.container}>      
+    <View style={styles.container}>
       <MapView
         style={styles.mapStyle}
         provider={PROVIDER_GOOGLE}
@@ -57,8 +55,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFF",
     alignItems: "center",
-    justifyContent: "center",    
-    paddingTop: 58,    
+    justifyContent: "center",
+    paddingTop: 58,
   },
   paragraph: {
     position: "absolute",

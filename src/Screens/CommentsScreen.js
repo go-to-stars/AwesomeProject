@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,85 +9,45 @@ import {
   TouchableOpacity,
   Keyboard,
   ScrollView,
-  Dimensions,  
+  Dimensions,
   Animated,
   TouchableWithoutFeedback,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import IconIonicons from "react-native-vector-icons/Ionicons";
-
-const defaultDataArrayPosts = [
-  {
-    id: 1,
-    publicationPhoto: require("../img/Forest.jpg"),
-    publicationName: "Ліс",
-    publicationCommentCount: 8,
-    publicationLikeCount: 153,
-    publicationLocation: "Ukraine",
-  },
-  {
-    id: 2,
-    publicationPhoto: require("../img/Sunset.jpg"),
-    publicationName: "Захід на Чорному морі",
-    publicationCommentCount: 3,
-    publicationLikeCount: 200,
-    publicationLocation: "Ukraine",
-  },
-  {
-    id: 3,
-    publicationPhoto: require("../img/Old_Home.jpg"),
-    publicationName: "Старий будиночок у Венеції",
-    publicationCommentCount: 50,
-    publicationLikeCount: 200,
-    publicationLocation: "Italy",
-  },
-];
-
-const defaultDataArrayComents = [
-  {
-    id: 1,
-    owner: "commentator",
-    photoUrl: require("../img/Ellipse.jpg"),
-    commentText:
-      "Really love your most recent photo. I've been trying to capture the same thing for a few months and would love some tips!",
-    commentDate: "09 червня, 2020 | 08:40",
-  },
-  {
-    id: 2,
-    owner: "user",
-    photoUrl: require("../img/Ellipse_User.jpg"),
-    commentText:
-      "A fast 50mm like f1.8 would help with the bokeh. I've been using primes as they tend to get a bit sharper images.",
-    commentDate: "09 червня, 2020 | 09:14",
-  },
-  {
-    id: 3,
-    owner: "commentator",
-    photoUrl: require("../img/Ellipse.jpg"),
-    commentText: "Thank you! That was very helpful!",
-    commentDate: "09 червня, 2020 | 09:20",
-  },
-];
+import { addComment, getComment } from "../redux/posts/postsOperations";
+import { useDispatch, useSelector } from "react-redux";
+import { auth } from "../redux/config";
+import { RefreshControl } from "react-native";
+import { pageRefresh } from "../helpers";
+import { selectComments } from "../redux/posts/postsSelectors";
 
 export default function CommentsScreen() {
   const navigation = useNavigation();
-  const [newComment, setNewComment] = useState("");
-  const [dataArrayPosts, setDataArrayPosts] = useState(defaultDataArrayPosts);
-  const [dataArrayComents, setDataArrayComents] = useState(
-    defaultDataArrayComents
-  );
+  const [newComment, setNewComment] = useState("");  
   const [shift, setShift] = useState(false);
   const [position] = useState(new Animated.Value(0));
-
+  const [update, setUpdate] = useState(false);  
+  const comments = useSelector(selectComments);
+  const dispatch = useDispatch();
+  const reversedComments = [...comments].reverse();
   const {
-    params: { idPost },
+    params: { idPost, imageURL },
   } = useRoute();
 
-  const number = dataArrayPosts.findIndex((item) => {
-    return item.id === idPost;
-  });
+  useEffect(() => {
+    dispatch(getComment(idPost));
+  }, [dispatch]);
 
-  const imageURL = defaultDataArrayPosts[number].publicationPhoto;
+  const fetchComments = async () => {
+    setUpdate(true);
+    try {
+      dispatch(getComment(idPost));
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+    setUpdate(false);
+  };
 
   const formatDate = (date) => {
     const formattedDateString = new Date(date).toLocaleDateString("uk-UA", {
@@ -105,25 +65,20 @@ export default function CommentsScreen() {
     return `${day} ${month}, ${year} | ${formattedTimeString}`;
   };
 
-  const addComment = () => {
+  const addCommentText = async () => {
     if (newComment) {
       const currentDate = new Date().toISOString();
-      const formattedDate = formatDate(currentDate);
-      const id = dataArrayComents[dataArrayComents.length - 1].id;
-      const comment = {
-        id: id + 1,
-        owner: "user",
-        photoUrl: require("../img/Ellipse_User.jpg"),
-        commentText: newComment,
-        commentDate: formattedDate,
-      };
-      const arrayComents = dataArrayComents;
-      arrayComents.push(comment);
-      setDataArrayComents([...arrayComents]);
+      const formattedDate = formatDate(currentDate);     
+      const id = idPost;
+      dispatch(addComment({ newComment, id, formattedDate }));
       setNewComment("");
+
+      pageRefresh(id, () => {
+        dispatch(getComment(id));
+      });
     }
   };
-
+  
   useEffect(() => {
     const listenerShow = Keyboard.addListener("keyboardDidShow", () => {
       setShift(true);
@@ -146,6 +101,12 @@ export default function CommentsScreen() {
     }).start();
   }, [shift]);
 
+  const setComment = (e) => {
+    setNewComment(e);
+  };
+
+  const uid = auth.currentUser.uid;  
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
@@ -153,45 +114,53 @@ export default function CommentsScreen() {
           contentContainerStyle={styles.scrollViewContainer}
           bounces={false}
           overScrollMode={"auto"}
+          refreshControl={
+            <RefreshControl refreshing={update} onRefresh={fetchComments} />
+          }
         >
           <Animated.View
             style={[styles.formWrapper, { paddingBottom: position }]}
           >
             <View style={styles.photoContainer}>
-              <ImageBackground source={imageURL} style={styles.photo} />
+              <ImageBackground
+                source={{ uri: imageURL }}
+                style={styles.photo}
+              />
             </View>
-            {dataArrayComents.map((comment) => {
+            {reversedComments.map((comment) => {
               return (
                 <View
                   style={
-                    comment.owner === "commentator"
+                    comment.userId !== uid
                       ? styles.commentsContainerCommentator
                       : styles.commentsContainerUser
                   }
                   key={comment.id}
                 >
                   <Image
-                    source={comment.photoUrl}
+                    source={
+                      comment.userURL
+                        ? { uri: comment.userURL }
+                        : require("../img/Ellipse.jpg")
+                    }
                     style={styles.commentatorPhoto}
                   />
                   <View
                     style={
-                      comment.owner === "commentator"
+                      comment.userId !== uid
                         ? styles.commentContainerCommentator
                         : styles.commentContainerUser
                     }
                   >
-                    <Text style={styles.commentText}>
-                      {comment.commentText}
-                    </Text>
+                    <Text style={styles.commentText}>{comment.text}</Text>
                     <Text
                       style={
-                        comment.owner === "commentator"
+                        comment.userId !== uid
                           ? styles.commentDate
                           : styles.commentUserDate
                       }
                     >
-                      {comment.commentDate}
+                      {comment.dataTime}
                     </Text>
                   </View>
                 </View>
@@ -203,9 +172,9 @@ export default function CommentsScreen() {
                 placeholder="Коментувати..."
                 placeholderTextColor="#BDBDBD"
                 value={newComment}
-                onChangeText={setNewComment}
+                onChangeText={setComment}
               />
-              <TouchableOpacity onPress={addComment}>
+              <TouchableOpacity onPress={addCommentText}>
                 <IconIonicons
                   name="arrow-up-circle"
                   size={34}
@@ -264,7 +233,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   commentContainerCommentator: {
-    flex: 1,    
+    flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.03)",
     width: "100%",
     padding: 16,
@@ -286,13 +255,13 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
   },
   commentText: {
-    width: "100%",    
+    width: "100%",
     color: "#212121",
     fontFamily: "Roboto-Regular",
     fontSize: 13,
     fontStyle: "normal",
     fontWeight: "400",
-    lineHeight: 18,    
+    lineHeight: 18,
   },
   commentDate: {
     color: "#BDBDBD",
